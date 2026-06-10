@@ -1,67 +1,120 @@
 # xv6-riscv
 
-A teaching RISC-V operating system implementing Unix Version 6, for MIT's 6.1810 course.
+This repository contains MIT 6.1810 xv6 for RISC-V, plus a Docker-based cross-toolchain helper.
 
-## Quick Start with Docker
+## What Is Actually Running in Docker?
 
-### 1. Build the Toolchain Container
+Important: there is no long-running "toolchain container" process.
+
+- `rv-toolchain-docker/build.sh` builds an image named `francisstokes/rv-toolchain:latest`.
+- `rv-toolchain-docker/generate-bin-dir.sh` creates wrapper scripts in `rv-toolchain-docker/bin/`.
+- Each wrapper runs one command in a short-lived container, then exits.
+
+So if you expected to see a container "staying up", that is not how this setup works.
+
+## Prerequisites (Host Machine)
+
+You still need host tools for anything that is not the cross-compiler itself:
+
+- Docker (daemon running)
+- `make`
+- `qemu-system-riscv64` (for `make qemu`)
+- `bc` (used by the Makefile's QEMU version check)
+
+Optional:
+
+- `clang-format` (for `make fmt`)
+
+## Quick Start (Docker Toolchain)
+
+From repository root:
+
 ```bash
 cd rv-toolchain-docker
 ./build.sh
-```
-This builds the `francisstokes/rv-toolchain:latest` Docker image and generates wrapper scripts in `./bin/`.
+export PATH="$(pwd)/bin:$PATH"
 
-### 2. Add Toolchain to PATH
-```bash
-export PATH=$(pwd)/bin:$PATH
-```
-The wrapper scripts automatically run RISC-V tools inside the container.
-
-### 3. Compile xv6
-```bash
-cd xv6-riscv
+cd ../xv6-riscv
 make
-```
-
-### 4. Run in QEMU
-```bash
 make qemu
 ```
 
-### 5. Debug with GDB
-**Terminal 1** (start QEMU with debugger):
+## Sanity Check Before Building
+
+From `rv-toolchain-docker/`:
+
 ```bash
-make qemu-gdb
+which riscv64-unknown-linux-gnu-gcc
+riscv64-unknown-linux-gnu-gcc --version
+docker images | grep rv-toolchain
 ```
 
-**Terminal 2** (connect debugger):
+Expected behavior:
+
+- `which` points to `rv-toolchain-docker/bin/riscv64-unknown-linux-gnu-gcc`
+- `--version` works (this proves Docker wrapper execution works)
+
+## Why "Container Never Started" Happens
+
+Typical causes:
+
+1. Docker daemon is not running.
+2. `PATH` does not include `rv-toolchain-docker/bin`.
+3. You exported `PATH` in one shell but built in another.
+4. QEMU is missing, so compile succeeds but `make qemu` fails.
+5. Non-interactive environments may dislike wrapper scripts using `docker run -it`.
+
+## Wrapper Script Model (No Magic)
+
+Each generated tool script is basically:
+
+```sh
+docker run -v "$(pwd)":/project -w /project -it francisstokes/rv-toolchain:latest <tool> "$@"
+```
+
+That means:
+
+- your current directory is mounted into `/project` in the container
+- command runs inside container
+- output appears in your shell
+- container exits immediately after command finishes
+
+## Running Without Docker
+
+If you have a local RISC-V cross-toolchain installed already, you can skip `rv-toolchain-docker/` and build xv6 directly.
+
+## Useful Commands
+
+Build and run:
+
 ```bash
+cd xv6-riscv
+make
+make qemu
+```
+
+Debug:
+
+```bash
+cd xv6-riscv
+make qemu-gdb
+# in another terminal
 gdb
 ```
 
-## How It Works
+Tests:
 
-- **Docker image**: Ubuntu 18.04 with RISC-V 64-bit GCC/binutils toolchain at `/opt/riscv/`
-- **Wrapper scripts**: Located in `rv-toolchain-docker/bin/`, each tool (e.g., `riscv64-unknown-linux-gnu-gcc`) is a shell script that runs the command inside the container with your working directory mounted
-- **Direct host usage**: If you've installed the RISC-V toolchain natively on your host, skip Docker entirely and run `make` normally
-
-## More Info
-
-- **Kernel code**: `xv6-riscv/kernel/` – Core OS functionality
-- **User programs**: `xv6-riscv/user/` – Utilities and tests
-- **Build details**: See `.github/copilot-instructions.md` for comprehensive build/test/debug commands
-- **Original README**: `xv6-riscv/README` – Acknowledgments and references
-
-## Testing
 ```bash
 cd xv6-riscv
-./test-xv6.py usertests       # Run full user tests
-./test-xv6.py -q usertests    # Quick tests
-./test-xv6.py crash           # Crash tests
+./test-xv6.py usertests
+./test-xv6.py -q usertests
+./test-xv6.py crash
 ```
 
-## Code Formatting
+Format:
+
 ```bash
 cd xv6-riscv
 make fmt
 ```
+

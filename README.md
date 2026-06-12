@@ -38,7 +38,8 @@ cd ../xv6-riscv
 make
 make qemu
 ```
-
+$ make qemu
+make: *** No rule to make target '/opt/riscv/lib/gcc/riscv64-unknown-linux-gnu/16.1.0/include/stdarg.h', needed by 'kernel/console.o'.  Stop.
 ## Sanity Check Before Building
 
 From `rv-toolchain-docker/`:

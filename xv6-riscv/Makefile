@@ -5,7 +5,7 @@ OBJS = \
   $K/entry.o \
   $K/start.o \
   $K/console.o \
-  $K/printf.o \
+  $K/printk.o \
   $K/uart.o \
   $K/kalloc.o \
   $K/spinlock.o \
@@ -60,8 +60,7 @@ LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 
-#CFLAGS = -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2
-CFLAGS = -Wall -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2
+CFLAGS = -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2
 CFLAGS += -march=rv64gc
 CFLAGS += -std=gnu99
 CFLAGS += -MD
@@ -146,8 +145,6 @@ UPROGS=\
 	$U/_logstress\
 	$U/_forphan\
 	$U/_dorphan\
-	$U/_sleep\
-	$U/_sixfive\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
